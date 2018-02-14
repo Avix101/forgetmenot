@@ -1,0 +1,29 @@
+{
+  "name": "blans-forgetmenot",
+  "version": "1.0.0",
+  "description": "A web-based event reminder tool",
+  "main": "./src/server.js",
+  "scripts": {
+    "start": "node ./src/server.js",
+    "pretest": "eslint ./src --fix",
+    "test": "echo \"Tests Complete\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Avix101/forgetmenot.git"
+  },
+  "author": "Stasha Blank",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Avix101/forgetmenot/issues"
+  },
+  "homepage": "https://github.com/Avix101/forgetmenot#readme",
+  "devDependencies": {
+    "eslint": "^4.17.0",
+    "eslint-config-airbnb": "^16.1.0",
+    "eslint-plugin-import": "^2.8.0"
+  },
+  "dependencies": {
+    "sendgrid": "^5.2.3"
+  }
+}
