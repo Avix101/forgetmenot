@@ -1,7 +1,9 @@
 const http = require('http');
 const urlLib = require('url');
+const query = require('querystring');
 
 const htmlHandler = require('./htmlHandler');
+const jsonHandler = require('./jsonHandler');
 const mailer = require('./mailer.js');
 
 const port = process.env.PORT || process.env.NODE_PORT || 3000;
@@ -23,8 +25,26 @@ const handleHead = (req, res, url) => {
 };
 
 const handlePost = (req, res, url) => {
-  // Placeholder
-  htmlHandler.getIndex(req, res, url);
+  if (url.pathname === '/postEvent') {
+    const bodyStream = [];
+
+    req.on('error', () => {
+      res.statusCode = 400;
+      res.end('Client Error: Data could not be posted.');
+    });
+
+    req.on('data', (dataChunk) => {
+      bodyStream.push(dataChunk);
+    });
+
+    req.on('end', () => {
+      const bodyString = Buffer.concat(bodyStream).toString();
+      const bodyParams = query.parse(bodyString);
+
+      // Make request to store in db here?
+      jsonHandler.postEvent(req, res, bodyParams);
+    });
+  }
 };
 
 const methodStruct = {
