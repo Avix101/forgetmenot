@@ -5,6 +5,7 @@ const query = require('querystring');
 const htmlHandler = require('./htmlHandler');
 const jsonHandler = require('./jsonHandler');
 const mailer = require('./mailer.js');
+const dbHandler = require('./dbHandler.js');
 
 const port = process.env.PORT || process.env.NODE_PORT || 3000;
 
@@ -64,6 +65,8 @@ const onRequest = (req, res) => {
 };
 
 http.createServer(onRequest).listen(port);
+
+dbHandler.connect();
 
 if (false) {
   mailer.sendEmail();

@@ -19,6 +19,9 @@
 			const time = form.querySelector("#timeField").value;
 			const description = form.querySelector("#descriptionField").value;
 			
+			const privacySelect = form.querySelector("#privacySelect");
+			const privacy = privacySelect.options[privacySelect.selectedIndex].value;
+			
 			const xhr = new XMLHttpRequest();
 			
 			xhr.open(method, action);
@@ -27,7 +30,7 @@
 			
 			xhr.onload = () => handleResponse(xhr);
 			
-			const data = `title=${title}&date=${date}&time=${time}&description=${description}`;
+			const data = `title=${title}&date=${date}&time=${time}&description=${description}&privacy=${privacy}`;
 			
 			xhr.send(data);
 			
@@ -63,6 +66,12 @@
 			
 		<label for="description">Event Description: </label>
 		<input id="descriptionField" name="description" type="textarea" />
+		
+		<label for="privacy">Event Privacy: </label>
+		<select id="privacySelect" name="privacy">
+			<option value="false">Public</option>
+			<option value="true">Private</option>
+		</select>
 		
 		<input type="submit" value="Post Event" />
 	</form>

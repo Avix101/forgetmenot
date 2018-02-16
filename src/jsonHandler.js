@@ -1,3 +1,5 @@
+const dbHandler = require('./dbHandler.js');
+
 const respond = (metaFlag, req, res, statusCode, data) => {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
 
@@ -10,21 +12,28 @@ const respond = (metaFlag, req, res, statusCode, data) => {
 };
 
 const postEvent = (req, res, params) => {
-  if (!params.title || !params.date || !params.description) {
+  if (!params.title || !params.date || !params.description || !params.privacy) {
     const response = {
       id: 'missingParameters',
-      message: 'Post paramters missing! Event title, date, and description are required',
+      message: 'Post parameters missing! Event title, date, description, and privacy are required.',
     };
 
     respond(false, req, res, 400, response);
     return;
   }
 
-  // console.log(params);
+  dbHandler.storeEvent(params, () => {
+	const response = { message: 'Event successfully posted' };
 
-  const response = { message: 'Event successfully posted' };
+	respond(false, req, res, 201, response);
+  }, () => {
+	const response = {
+      id: 'internal',
+	  message: 'Event could not be posted.' 
+	};
 
-  respond(false, req, res, 201, response);
+	respond(false, req, res, 500, response);
+  });
 };
 
 module.exports = {
