@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
+	<script type="text/babel">
+		"use strict";
+		
+		const handleResponse = (xhr) => {
+			
+			console.log(xhr.response);
+		};
+		
+		const postEvent = (e, form) => {
+			const action = form.getAttribute("action");
+			const method = form.getAttribute("method");
+			
+			const title = form.querySelector("#titleField").value;
+			const date = form.querySelector("#dateField").value;
+			const time = form.querySelector("#timeField").value;
+			const description = form.querySelector("#descriptionField").value;
+			
+			const xhr = new XMLHttpRequest();
+			
+			xhr.open(method, action);
+			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+			xhr.setRequestHeader("Accept", "application/json");
+			
+			xhr.onload = () => handleResponse(xhr);
+			
+			const data = `title=${title}&date=${date}&time=${time}&description=${description}`;
+			
+			xhr.send(data);
+			
+			e.preventDefault();
+			return false;
+		};
+		
+		const init = () => {
+			const eventForm = document.querySelector("#eventForm");
+			
+			eventForm.addEventListener('submit', (e) => {
+				postEvent(e, eventForm);
+			});
+		};
+		
+		window.onload = init;
+		
+	</script>
+</head>
+
+<body>
+	<h1>Forget-Me-Not</h1>
+	<p>We're here to help you remember the important things in life.</p>
+	<form id="eventForm" action="/postEvent" method="post">
+		<label for="title">Event Title: </label>
+		<input id="titleField" name="title" type="text" />
+		
+		<label for="date">Event Date: </label>
+		<input id="dateField" name="date" type="date" />
+		
+		<label for="time">Time (Optional): </label>
+		<input id="timeField" name="time" type="time" />
+			
+		<label for="description">Event Description: </label>
+		<input id="descriptionField" name="description" type="textarea" />
+		
+		<input type="submit" value="Post Event" />
+	</form>
+	<div id="events"></div>
+</body>
+</html>
