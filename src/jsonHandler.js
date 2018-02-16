@@ -23,16 +23,16 @@ const postEvent = (req, res, params) => {
   }
 
   dbHandler.storeEvent(params, () => {
-	const response = { message: 'Event successfully posted' };
+    const response = { message: 'Event successfully posted' };
 
-	respond(false, req, res, 201, response);
+    respond(false, req, res, 201, response);
   }, () => {
-	const response = {
+    const response = {
       id: 'internal',
-	  message: 'Event could not be posted.' 
-	};
+      message: 'Event could not be posted.',
+    };
 
-	respond(false, req, res, 500, response);
+    respond(false, req, res, 500, response);
   });
 };
 
