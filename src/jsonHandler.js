@@ -11,27 +11,25 @@ const respond = (metaFlag, req, res, statusCode, data) => {
   res.end();
 };
 
-const filterEvents = (user, data) => {
-	return data.events.filter((event) => {
-		if(!event.event_private || event.event_creator === user){
-			return true;
-		}
-		return false;
-	});
-};
+const filterEvents = (user, data) => data.events.filter((event) => {
+  if (!event.event_private || event.event_creator === user) {
+    return true;
+  }
+  return false;
+});
 
 const getEvents = (req, res) => {
-	dbHandler.getEvents((data) => {
-		const events = filterEvents(req.user, data);
-		respond(false, req, res, 200, {events});
-	}, () => {
-		const response = {
-			id: 'internal',
-			message: 'Events could not be retrieved.',
-		};
+  dbHandler.getEvents((data) => {
+    const events = filterEvents(req.user, data);
+    respond(false, req, res, 200, { events });
+  }, () => {
+    const response = {
+      id: 'internal',
+      message: 'Events could not be retrieved.',
+    };
 
-		respond(false, req, res, 500, response);
-	});
+    respond(false, req, res, 500, response);
+  });
 };
 
 const postEvent = (req, res, params) => {
@@ -44,10 +42,10 @@ const postEvent = (req, res, params) => {
     respond(false, req, res, 400, response);
     return;
   }
-  
-  params.creator = req.user || undefined;
+  const moddedParams = params;
+  moddedParams.creator = req.user || undefined;
 
-  dbHandler.storeEvent(params, () => {
+  dbHandler.storeEvent(moddedParams, () => {
     const response = { message: 'Event successfully posted' };
 
     respond(false, req, res, 201, response);

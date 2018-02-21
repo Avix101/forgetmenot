@@ -14,15 +14,15 @@ const handleGet = (req, res, url) => {
     case '/':
       htmlHandler.getIndex(req, res);
       break;
-	case '/style.css':
-		htmlHandler.getStyle(req, res);
-		break;
-	/* case '/script.js':
-		htmlHandler.getScript(req, res);
-		break; */
-	case '/getEvents':
-		jsonHandler.getEvents(req, res);
-		break;
+    case '/style.css':
+      htmlHandler.getStyle(req, res);
+      break;
+      /* case '/script.js':
+      htmlHandler.getScript(req, res);
+      break; */
+    case '/getEvents':
+      jsonHandler.getEvents(req, res);
+      break;
     default:
       htmlHandler.getNotReal(req, res);
       break;
@@ -58,27 +58,29 @@ const handlePost = (req, res, url) => {
 };
 
 const authenticate = (req, res, parsedUrl, next) => {
-	
-	let parsedCookies = {};
-	
-	if(req.headers.cookie){
-		const cookies = req.headers.cookie.split(';');
-		
-		for(let i = 0; i < cookies.length; i++){
-			const cookieParts = cookies[i].split('=');
-			parsedCookies[cookieParts[0]] = cookieParts[1];
-		}
-	}
-	
-	if(!parsedCookies['id']){
-		const userID = `${req.connection.remoteAddress}${new Date().getTime()}`;
-		res.setHeader('Set-Cookie',['id', userID]);
-		req.user = userID;
-	} else {
-		req.user = parsedCookies['id'];
-	}
-	
-	next(req, res, parsedUrl);
+  const parsedCookies = {};
+
+  if (req.headers.cookie) {
+    const cookies = req.headers.cookie.split(';');
+
+    for (let i = 0; i < cookies.length; i++) {
+      const cookieParts = cookies[i].split('=');
+
+      // Voodoo magic! Object destructuring syntax is weird
+      const { 0: cookieName, 1: cookieKey } = cookieParts;
+      parsedCookies[cookieName] = cookieKey;
+    }
+  }
+
+  if (!parsedCookies.id) {
+    const userID = `${req.connection.remoteAddress}${new Date().getTime()}`;
+    res.setHeader('Set-Cookie', ['id', userID]);
+    req.user = userID;
+  } else {
+    req.user = parsedCookies.id;
+  }
+
+  next(req, res, parsedUrl);
 };
 
 const methodStruct = {

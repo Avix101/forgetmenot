@@ -22,8 +22,15 @@ const storeEvent = (params, success, failure) => {
     failure();
   }
 
-  let query = 'INSERT INTO events ("event_title", "event_date", "event_description", "event_private", "event_creator"';
-  const insertBuffer = [params.title, params.date, params.description, params.privacy, params.creator];
+  let query = 'INSERT INTO events ("event_title", "event_date"';
+  query = `${query},"event_description", "event_private", "event_creator"`;
+
+  const insertBuffer = [
+    params.title,
+    params.date,
+    params.description,
+    params.privacy,
+    params.creator];
 
   if (params.time) {
     query = `${query}, "event_time") VALUES ($1, $2, $3, $4, $5, $6)`;
@@ -49,11 +56,11 @@ const getEvents = (success, failure) => {
 
   return client.query('SELECT * FROM events', (err, res) => {
     if (err) {
-		failure();
+      failure();
       throw err;
     }
 
-    success({events: res.rows});
+    success({ events: res.rows });
   });
 };
 
