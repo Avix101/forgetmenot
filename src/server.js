@@ -73,7 +73,17 @@ const authenticate = (req, res, parsedUrl, next) => {
   }
 
   if (!parsedCookies.id) {
-    const userID = `${req.connection.remoteAddress}${new Date().getTime()}`;
+    // Silly Heroku, using proxies to obscure ip addresses!
+    let ipAddress = req.headers['x-forwarded-for'];
+
+    if (ipAddress) {
+      const addresses = ipAddress.split(',');
+      ipAddress = addresses[addresses.length - 1];
+    } else {
+      ipAddress = req.connection.remoteAddress;
+    }
+
+    const userID = `${ipAddress}${new Date().getTime()}`;
     res.setHeader('Set-Cookie', ['id', userID]);
     req.user = userID;
   } else {
