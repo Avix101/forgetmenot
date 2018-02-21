@@ -1,0 +1,65 @@
+h1 {
+	text-align: center;
+}
+
+.overlay {
+	background-color: white;
+	border-radius: 5px;
+	border: 1px solid grey;
+	box-shadow: 2px 2px 2px rgba(0,0,0,0.2);
+	max-width: 40%;
+	min-width: 40%;
+	text-align: center;
+	position:fixed;
+	top:50%;
+	left:50%;
+	margin-left: -20%;
+	margin-top:-100px;
+}
+
+/*
+Dialog info: https://tympanus.net/codrops/2013/11/07/css-overlay-techniques/
+Dialog animation techniques: https://tympanus.net/codrops/2014/12/08/inspiration-dialog-effects/ 
+*/
+
+.overlay-down-anim, .overlay-up-anim, .event-right-anim {
+	animation-duration: 0.3s;
+	animation-fill-mode: forwards;
+}
+
+.overlay-down-anim {
+	animation-name: slide-down;
+}
+
+.overlay-up-anim {
+	animation-name: slide-up;
+}
+
+.event-right-anim {
+	opacity: 0;
+	animation-name: slide-right;
+}
+
+@keyframes slide-down {
+	0% { opacity: 0; transform: scale3d(0, 1, 1); margin-top: -200px; }
+	100% { opacity: 1; transform: scale3d(1, 1, 1); margin-top: -100px; }
+}
+
+@keyframes slide-up {
+	0% { opacity: 1; margin-top: -100px; }
+	100% { opacity: 0; transform: scale3d(0, 1, 1); margin-top: -200px; }
+}
+
+@keyframes slide-right {
+	0% { opacity: 0; margin-left: -100px; }
+	100% { opacity: 1; margin-left: 0px; }
+}
+
+/* .overlay::backdrop {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+} */

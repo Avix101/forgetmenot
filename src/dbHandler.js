@@ -22,14 +22,14 @@ const storeEvent = (params, success, failure) => {
     failure();
   }
 
-  let query = 'INSERT INTO events ("event_title", "event_date", "event_description", "event_private"';
-  const insertBuffer = [params.title, params.date, params.description, params.privacy];
+  let query = 'INSERT INTO events ("event_title", "event_date", "event_description", "event_private", "event_creator"';
+  const insertBuffer = [params.title, params.date, params.description, params.privacy, params.creator];
 
   if (params.time) {
-    query = `${query}, "event_time") VALUES ($1, $2, $3, $4, $5)`;
+    query = `${query}, "event_time") VALUES ($1, $2, $3, $4, $5, $6)`;
     insertBuffer.push(params.time);
   } else {
-    query = `${query}) VALUES ($1, $2, $3, $4)`;
+    query = `${query}) VALUES ($1, $2, $3, $4, $5)`;
   }
 
   client.query(query, insertBuffer, (err) => {
@@ -42,23 +42,18 @@ const storeEvent = (params, success, failure) => {
   });
 };
 
-const getEvents = () => {
+const getEvents = (success, failure) => {
   if (!connected) {
-    return [];
+    failure();
   }
 
   return client.query('SELECT * FROM events', (err, res) => {
     if (err) {
+		failure();
       throw err;
     }
 
-    const events = [];
-
-    for (let i = 0; i < res.rows.length; i++) {
-      events.push(JSON.stringify(res.rows[i]));
-    }
-
-    return events;
+    success({events: res.rows});
   });
 };
 

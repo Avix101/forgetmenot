@@ -14,6 +14,15 @@ const handleGet = (req, res, url) => {
     case '/':
       htmlHandler.getIndex(req, res);
       break;
+	case '/style.css':
+		htmlHandler.getStyle(req, res);
+		break;
+	/* case '/script.js':
+		htmlHandler.getScript(req, res);
+		break; */
+	case '/getEvents':
+		jsonHandler.getEvents(req, res);
+		break;
     default:
       htmlHandler.getNotReal(req, res);
       break;
@@ -48,6 +57,30 @@ const handlePost = (req, res, url) => {
   }
 };
 
+const authenticate = (req, res, parsedUrl, next) => {
+	
+	let parsedCookies = {};
+	
+	if(req.headers.cookie){
+		const cookies = req.headers.cookie.split(';');
+		
+		for(let i = 0; i < cookies.length; i++){
+			const cookieParts = cookies[i].split('=');
+			parsedCookies[cookieParts[0]] = cookieParts[1];
+		}
+	}
+	
+	if(!parsedCookies['id']){
+		const userID = `${req.connection.remoteAddress}${new Date().getTime()}`;
+		res.setHeader('Set-Cookie',['id', userID]);
+		req.user = userID;
+	} else {
+		req.user = parsedCookies['id'];
+	}
+	
+	next(req, res, parsedUrl);
+};
+
 const methodStruct = {
   GET: handleGet,
   HEAD: handleHead,
@@ -58,9 +91,9 @@ const onRequest = (req, res) => {
   const parsedUrl = urlLib.parse(req.url);
 
   if (methodStruct[req.method]) {
-    methodStruct[req.method](req, res, parsedUrl);
+    authenticate(req, res, parsedUrl, methodStruct[req.method]);
   } else {
-    handleGet(req, res, parsedUrl);
+    authenticate(req, res, parsedUrl, handleGet);
   }
 };
 

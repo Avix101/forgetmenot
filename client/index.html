@@ -1,15 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+	<title>Forget Me Not</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="style.css">
 	<script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
 	<script type="text/babel">
 		"use strict";
 		
-		const handleResponse = (xhr) => {
+		let overlay
+		
+		const handleResponse = (xhr, metaFlag) => {
 			
+			if(metaFlag){
+				console.log(xhr.response);
+				return;
+			}
+			
+			const events = document.querySelector("#events");
+			
+			events.innerHTML = "";
+			
+			const data = JSON.parse(xhr.response);
+			
+			if(data.events){
+			
+				for(let i = 0; i < data.events.length; i++){
+					const eventTile = document.createElement('div');
+					const header = document.createElement('h2');
+					const date = document.createElement('p');
+					const time = document.createElement('p');
+					const description = document.createElement('p');
+					const buttonContainer = document.createElement('p');
+					const editBtn = document.createElement('button');
+					const deleteBtn = document.createElement('button');
+					const emailBtn = document.createElement('button');
+					const textBtn = document.createElement('button');
+					
+					const eventData = data.events[i];
+					
+					header.textContent = eventData['event_title'];
+					date.textContent = `Date: ${eventData['event_date'].split('T')[0]}`;
+					description.textContent = `Description: ${eventData['event_description']}`;
+					
+					if(eventData['event_time']){
+						time.textContent = `Time: ${eventData['event_time']}`;
+					} else {
+						time.textContent = "Time: N/A (All Day)";
+					}
+					
+					editBtn.textContent = "Edit Event";
+					editBtn.className = "btn btn-warning";
+					
+					deleteBtn.textContent = "Delete Event";
+					deleteBtn.className = "btn btn-danger";
+					
+					emailBtn.textContent = "Email Me";
+					emailBtn.className = "btn btn-success";
+					
+					textBtn.textContent = "Text Me";
+					textBtn.className = "btn btn-success";
+					
+					eventTile.classList.add("event-right-anim");
+					eventTile.style.animationDelay = `${0.2 * i}s`;
+					
+					buttonContainer.appendChild(editBtn);
+					buttonContainer.appendChild(deleteBtn);
+					buttonContainer.appendChild(emailBtn);
+					buttonContainer.appendChild(textBtn);
+					
+					eventTile.appendChild(header);
+					eventTile.appendChild(date);
+					eventTile.appendChild(time);
+					eventTile.appendChild(description);
+					eventTile.appendChild(buttonContainer);
+					
+					events.appendChild(eventTile);
+					
+					if(i < data.events.length -1) {
+						events.appendChild(document.createElement('hr'));
+					}
+				}
+			}
 			console.log(xhr.response);
 		};
-		
+
+		const getEvents = (e, form) => {
+			const action = form.getAttribute("action");
+			const method = form.querySelector("#methodSelect").value;
+			
+			const xhr = new XMLHttpRequest();
+			
+			xhr.open(method, action);
+			xhr.setRequestHeader("Accept", "application/json");
+			
+			xhr.onload = () => handleResponse(xhr, method === 'head');
+			
+			xhr.send();
+			
+			e.preventDefault();
+			return false;
+		};
+
 		const postEvent = (e, form) => {
 			const action = form.getAttribute("action");
 			const method = form.getAttribute("method");
@@ -28,7 +120,7 @@
 			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 			xhr.setRequestHeader("Accept", "application/json");
 			
-			xhr.onload = () => handleResponse(xhr);
+			xhr.onload = () => handleResponse(xhr, false);
 			
 			const data = `title=${title}&date=${date}&time=${time}&description=${description}&privacy=${privacy}`;
 			
@@ -38,43 +130,94 @@
 			return false;
 		};
 		
+		const closeAndResetOverlay = () => {
+			overlay.classList.remove("overlay-down-anim");
+			overlay.classList.add("overlay-up-anim");
+		};
+
 		const init = () => {
 			const eventForm = document.querySelector("#eventForm");
+			const getDataForm = document.querySelector("#getDataForm");
+			const addEventButton = document.querySelector("#addEvent");
+			const cancelButton = document.querySelector("#cancelPost");
+			overlay = document.querySelector("#addEventOverlay");
 			
 			eventForm.addEventListener('submit', (e) => {
 				postEvent(e, eventForm);
+				closeAndResetOverlay();
+			});
+			
+			getDataForm.addEventListener('submit', (e) => {
+				getEvents(e, getDataForm);
+			});
+			
+			addEventButton.addEventListener('click', (e) => {
+				overlay.style.display = "block";
+				overlay.classList.remove("overlay-up-anim");
+				overlay.classList.add("overlay-down-anim");
+			});
+			
+			cancelButton.addEventListener('click', (e) => {
+				closeAndResetOverlay();
 			});
 		};
-		
+
 		window.onload = init;
-		
 	</script>
 </head>
 
 <body>
 	<h1>Forget-Me-Not</h1>
-	<p>We're here to help you remember the important things in life.</p>
-	<form id="eventForm" action="/postEvent" method="post">
-		<label for="title">Event Title: </label>
-		<input id="titleField" name="title" type="text" />
+	<div class="container">
+		<p>We're here to help you remember the important things in life.</p>
+		<button id="addEvent" class="btn">Add Event</button>
+	</div>
+	<div class="container">
+		<form id="getDataForm" action="/getEvents" method="get">
+			<select id="methodSelect">
+				<option value="get">GET</option>
+				<option value="head">HEAD</option>
+			</select>
+			<input type="submit" value="Get Events" />
+		</form>
+	</div>
 		
-		<label for="date">Event Date: </label>
-		<input id="dateField" name="date" type="date" />
-		
-		<label for="time">Time (Optional): </label>
-		<input id="timeField" name="time" type="time" />
+	<div id="events" class="container"></div>
+	
+	<dialog id="addEventOverlay" class="overlay">
+		<form id="eventForm" action="/postEvent" method="post">
+			<h2>Add Event</h2>
+			<hr />
 			
-		<label for="description">Event Description: </label>
-		<input id="descriptionField" name="description" type="textarea" />
-		
-		<label for="privacy">Event Privacy: </label>
-		<select id="privacySelect" name="privacy">
-			<option value="false">Public</option>
-			<option value="true">Private</option>
-		</select>
-		
-		<input type="submit" value="Post Event" />
-	</form>
-	<div id="events"></div>
+			<p>
+				<label for="title">Event Title: </label>
+				<input id="titleField" name="title" type="text" />
+			</p>
+			<p>
+				<label for="date">Event Date: </label>
+				<input id="dateField" name="date" type="date" />
+			</p>
+			<p>
+				<label for="time">Time (Optional): </label>
+				<input id="timeField" name="time" type="time" />
+			</p>
+			<p>
+				<label for="description">Event Description: </label>
+				<input id="descriptionField" name="description" type="textarea" />
+			</p>
+			</p>
+				<label for="privacy">Event Privacy: </label>
+				<select id="privacySelect" name="privacy">
+					<option value="false">Public</option>
+					<option value="true">Private</option>
+				</select>
+			</p>
+			
+			<p>
+				<input id="cancelPost" type="button" class="btn btn-danger" value="Cancel" />
+				<input type="submit" class="btn btn-success" value="Post Event" />
+			</p>
+		</form>
+	</dialog>
 </body>
 </html>
