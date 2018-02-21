@@ -72,6 +72,8 @@ const authenticate = (req, res, parsedUrl, next) => {
     }
   }
 
+  console.log(parsedCookies);
+
   if (!parsedCookies.id) {
     // Silly Heroku, using proxies to obscure ip addresses!
     let ipAddress = req.headers['x-forwarded-for'];
