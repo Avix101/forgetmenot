@@ -9,6 +9,7 @@ const dbHandler = require('./dbHandler.js');
 const port = process.env.PORT || process.env.NODE_PORT || 3000;
 
 const handleGet = (req, res, url) => {
+  const params = query.parse(url.query);
   switch (url.pathname) {
     case '/':
       htmlHandler.getIndex(req, res);
@@ -20,7 +21,7 @@ const handleGet = (req, res, url) => {
       htmlHandler.getScript(req, res);
       break; */
     case '/getEvents':
-      jsonHandler.getEvents(req, res);
+      jsonHandler.getEvents(req, res, params);
       break;
     default:
       htmlHandler.getNotReal(req, res);

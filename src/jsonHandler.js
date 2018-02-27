@@ -13,17 +13,88 @@ const respond = (metaFlag, req, res, statusCode, data) => {
   res.end();
 };
 
-const filterEvents = (user, data) => data.events.filter((event) => {
+const filterUnauthorizedEvents = (user, data) => data.events.filter((event) => {
   if (!event.event_private || event.event_creator === user) {
     return true;
   }
   return false;
 });
 
-const getEvents = (req, res) => {
+const applyCustomFilter = (filter, data) => data.events.filter((event) => {
+  if (filter === 'private') {
+    return event.event_private;
+  } else if (filter === 'public') {
+    return !event.event_private;
+  }
+  return true;
+});
+
+const applySearchFilter = (search, data) => data.events.filter((event) => {
+  if (search !== '') {
+    const title = event.event_title.toLowerCase();
+    const description = event.event_description.toLowerCase();
+    return title.indexOf(search) > -1 || description.indexOf(search) > -1;
+  }
+  return true;
+});
+
+const sortResults = (sortCommand, data) => data.events.sort((a, b) => {
+  const dateA = new Date(a.event_date);
+  const dateB = new Date(b.event_date);
+  let timeA = a.event_time;
+  let timeB = b.event_time;
+
+  if (timeA) {
+    timeA = a.event_time.split(':');
+  } else {
+    timeA = [0, 0];
+  }
+
+  if (timeB) {
+    timeB = b.event_time.split(':');
+  } else {
+    timeB = [0, 0];
+  }
+
+  if (sortCommand === 'date-asc') {
+    const result = dateA.getTime() - dateB.getTime();
+
+    if (result === 0) {
+      const timeResult = timeA[0] - timeB[0];
+
+      if (timeResult === 0) {
+        return timeA[1] - timeB[1];
+      }
+      return timeResult;
+    }
+    return result;
+  } else if (sortCommand === 'date-des') {
+    const result = dateB.getTime() - dateA.getTime();
+
+    if (result === 0) {
+      const timeResult = timeB[0] - timeA[0];
+
+      if (timeResult === 0) {
+        return timeB[1] - timeA[1];
+      }
+      return timeResult;
+    }
+    return result;
+  }
+  return 1;
+});
+
+const getEvents = (req, res, params) => {
   dbHandler.getEvents((data) => {
-    const events = filterEvents(req.user, data);
-    respond(false, req, res, 200, { events });
+    const authorizedEvents = filterUnauthorizedEvents(req.user, data);
+    const filteredEvents = applyCustomFilter(params.filter, { events: authorizedEvents });
+    const searchedEvents = applySearchFilter(
+      params.search.toLowerCase(),
+      { events: filteredEvents },
+    );
+    const sortedEvents = sortResults(params.sort, { events: searchedEvents });
+
+    respond(false, req, res, 200, { events: sortedEvents });
   }, () => {
     const response = {
       id: 'internal',

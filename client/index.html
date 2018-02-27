@@ -60,9 +60,13 @@
 			
 			if(data.events){
 			
+				const eventsHeader = document.querySelector("#eventsHeader");
+				eventsHeader.textContent = `Events (${data.events.length})`;
+			
 				for(let i = 0; i < data.events.length; i++){
 					const eventTile = document.createElement('div');
-					const header = document.createElement('h2');
+					const header = document.createElement('div');
+					const body = document.createElement('div');
 					const date = document.createElement('p');
 					const time = document.createElement('p');
 					const description = document.createElement('p');
@@ -76,6 +80,8 @@
 					const eventData = data.events[i];
 					
 					header.textContent = eventData['event_title'];
+					header.className = ("panel-heading bold-text");
+					body.classList.add("panel-body");
 					
 					const parsedDate = new Date(eventData['event_date']);
 					const weekday = parsedDate.toLocaleDateString('en-US', {weekday: 'long'});
@@ -110,7 +116,7 @@
 					textBtn.addEventListener('click', openTextReminderOverlay);
 					textBtn.setAttribute('eventindex', i);
 					
-					eventTile.classList.add("event-right-anim");
+					eventTile.className = "event-right-anim panel panel-default";
 					eventTile.style.animationDelay = `${0.2 * i}s`;
 					
 					buttonContainer.appendChild(editBtn);
@@ -118,12 +124,15 @@
 					buttonContainer.appendChild(emailBtn);
 					buttonContainer.appendChild(textBtn);
 					
+					body.appendChild(date);
+					body.appendChild(time);
+					body.appendChild(description);
+					body.appendChild(privacy);
+					body.appendChild(document.createElement('hr'));
+					body.appendChild(buttonContainer);
+					
 					eventTile.appendChild(header);
-					eventTile.appendChild(date);
-					eventTile.appendChild(time);
-					eventTile.appendChild(description);
-					eventTile.appendChild(privacy);
-					eventTile.appendChild(buttonContainer);
+					eventTile.appendChild(body);
 					
 					events.appendChild(eventTile);
 					
@@ -137,14 +146,28 @@
 
 		const getEvents = (e, form) => {
 			const action = form.getAttribute("action");
-			const method = form.querySelector("#methodSelect").value;
+			
+			let method;
+			
+			if(e === undefined){
+				method = 'get';
+			} else {
+				method = form.querySelector("#methodSelect").value;
+			}
+			
+			const filterSelect = form.querySelector("#filterSelect");
+			const sortSelect = form.querySelector("#sortSelect");
+			
+			const filter = filterSelect.options[filterSelect.selectedIndex].value;
+			const sort = sortSelect.options[sortSelect.selectedIndex].value;
+			const search = encodeURIComponent(document.querySelector("#searchBox").value)
 			
 			const xhr = new XMLHttpRequest();
 			
-			xhr.open(method, action);
+			xhr.open(method, `${action}?filter=${filter}&sort=${sort}&search=${search}`);
 			xhr.setRequestHeader("Accept", "application/json");
 			
-			xhr.onload = () => handleResponse(xhr, method === 'head');
+			xhr.onload = () => handleResponse(xhr, method === 'head' && e != undefined);
 			
 			xhr.send();
 			
@@ -433,20 +456,25 @@
 </head>
 
 <body>
-	<h1>Forget Me Not</h1>
-	<hr />
+	<div id="headerSection" class="bg-primary">
+		<h1>Forget Me Not</h1>
+		<hr />
+	</div>
 	
-	<h2 class="text-center">Add Events</h2>
 	<div class="container">
-		<p>We're here to help you remember the important things in life.</p>
-		<button id="addEvent" class="btn btn-success"><span class="glyphicon glyphicon-plus"></span> Add Event</button>
+		<p class="text-center">We're here to help you remember the important things in life.
+			<button id="addEvent" class="btn btn-success btn-lg center-block">
+				<span class="glyphicon glyphicon-plus"></span> Add Event
+			</button>
+		</p>
 	</div>
 	<hr />
 	
 	<h2 class="text-center">Request Events</h2>
 	<div class="container">
-		<form id="getDataForm" action="/getEvents" method="get">
-			<div class="row">
+		<div class="row">
+			<div class="col-sm-6 col-sm-offset-3">
+			<form id="getDataForm" action="/getEvents" method="get">
 				<div>
 					<label for="filter">Filter: </label>
 					<select id="filterSelect" class="form-control" name="filter">
@@ -455,10 +483,13 @@
 						<option value="public">Public Only</option>
 					</select>
 					
+					<label for="searchBox">Search Titles and Descriptions for:</label>
+					<input id="searchBox" name="searchBox" type="text" class="form-control" placeholder="Search..." />
+					
 					<label for="sort">Sort By: </label>
 					<select id="sortSelect" class="form-control" name="sort">
-						<option value="date-asc">Date - Ascending</option>
-						<option value="date-des">Date - Descending</option>
+						<option value="date-asc">Date &amp; Time - Ascending</option>
+						<option value="date-des">Date &amp; Time - Descending</option>
 					</select>
 					
 					<label for="methodSelect">Method: </label>
@@ -467,15 +498,16 @@
 						<option value="head">HEAD</option>
 					</select>
 					<p>
-						<input type="submit" value="Get Events" class="btn btn-success" />
+						<input id="getEventsButton" type="submit" value="Get Events" class="btn btn-success btn-lg center-block" />
 					</p>
 				</div>
+			</form>
 			</div>
-		</form>
+		</div>
 	</div>
 	<hr />
 		
-	<h2 class="text-center">Events</h2>
+	<h2 id="eventsHeader" class="text-center">Events</h2>
 	<div id="events" class="container"></div>
 	
 	<dialog id="notifyOverlay" class="overlay">
