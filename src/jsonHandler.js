@@ -30,10 +30,11 @@ const applyCustomFilter = (filter, data) => data.events.filter((event) => {
 });
 
 const applySearchFilter = (search, data) => data.events.filter((event) => {
-  if (search !== '') {
+  if (search && search !== '') {
+    const searchLower = search.toLowerCase();
     const title = event.event_title.toLowerCase();
     const description = event.event_description.toLowerCase();
-    return title.indexOf(search) > -1 || description.indexOf(search) > -1;
+    return title.indexOf(searchLower) > -1 || description.indexOf(searchLower) > -1;
   }
   return true;
 });
@@ -89,7 +90,7 @@ const getEvents = (req, res, params) => {
     const authorizedEvents = filterUnauthorizedEvents(req.user, data);
     const filteredEvents = applyCustomFilter(params.filter, { events: authorizedEvents });
     const searchedEvents = applySearchFilter(
-      params.search.toLowerCase(),
+      params.search,
       { events: filteredEvents },
     );
     const sortedEvents = sortResults(params.sort, { events: searchedEvents });
