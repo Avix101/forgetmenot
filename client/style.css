@@ -48,8 +48,8 @@ Dialog animation techniques: https://tympanus.net/codrops/2014/12/08/inspiration
 }
 
 @keyframes slide-up {
-	0% { opacity: 1; margin-top: -30%; }
-	100% { opacity: 0; transform: scale3d(0, 1, 1); margin-top: -20%; }
+	0% { opacity: 1; margin-top: -20%; }
+	100% { opacity: 0; transform: scale3d(0, 1, 1); margin-top: -10%; }
 }
 
 @keyframes slide-right {
@@ -61,7 +61,7 @@ textarea {
 	resize: none;
 }
 
-#dateField, #timeField, #privacySelect {
+#dateField, #timeField, #privacySelect, #providerSelect, #emailField, #textField {
 	max-width: 50%;
 }
 

@@ -20,6 +20,7 @@ const connect = () => {
 const storeEvent = (params, success, failure) => {
   if (!connected) {
     failure();
+    return;
   }
 
   let query = 'INSERT INTO events ("event_title", "event_date"';
@@ -43,18 +44,72 @@ const storeEvent = (params, success, failure) => {
     if (err) {
       failure();
       // console.log(err);
+    } else {
+      success();
     }
+  });
+};
 
-    success();
+const updateEvent = (params, success, failure) => {
+  if (!connected) {
+    failure();
+    return;
+  }
+
+  const insertBuffer = [
+    params.title,
+    params.date,
+    params.description,
+    params.privacy,
+    params.id];
+
+  let query = 'UPDATE events SET ';
+
+  query = `${query} event_title = ($1)`;
+  query = `${query}, event_date = ($2)`;
+  query = `${query}, event_description = ($3)`;
+  query = `${query}, event_private = ($4)`;
+
+  if (params.time) {
+    query = `${query}, event_time = ($6)`;
+    insertBuffer.push(params.time);
+  }
+
+  query = `${query} WHERE event_id = ($5);`;
+
+  client.query(query, insertBuffer, (err) => {
+    if (err) {
+      failure();
+    } else {
+      success();
+    }
+  });
+};
+
+const deleteEvent = (id, success, failure) => {
+  if (!connected) {
+    failure();
+    return;
+  }
+  const query = 'DELETE FROM events WHERE event_id = ($1)';
+  const insertBuffer = [id];
+
+  client.query(query, insertBuffer, (err) => {
+    if (err) {
+      failure();
+    } else {
+      success();
+    }
   });
 };
 
 const getEvents = (success, failure) => {
   if (!connected) {
     failure();
+    return;
   }
 
-  return client.query('SELECT * FROM events', (err, res) => {
+  client.query('SELECT * FROM events', (err, res) => {
     if (err) {
       failure();
       throw err;
@@ -74,4 +129,6 @@ module.exports = {
   disconnect,
   storeEvent,
   getEvents,
+  updateEvent,
+  deleteEvent,
 };

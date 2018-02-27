@@ -4,7 +4,6 @@ const query = require('querystring');
 
 const htmlHandler = require('./htmlHandler');
 const jsonHandler = require('./jsonHandler');
-const mailer = require('./mailer.js');
 const dbHandler = require('./dbHandler.js');
 
 const port = process.env.PORT || process.env.NODE_PORT || 3000;
@@ -30,30 +29,59 @@ const handleGet = (req, res, url) => {
 };
 
 const handleHead = (req, res, url) => {
-  // Placeholder
-  htmlHandler.getIndex(req, res, url);
+  if (url.pathname === '/getEvents') {
+    jsonHandler.getEventsMeta(req, res);
+  } else {
+    jsonHandler.notFoundMeta(req, res);
+  }
 };
 
 const handlePost = (req, res, url) => {
-  if (url.pathname === '/postEvent') {
-    const bodyStream = [];
+  const bodyStream = [];
 
-    req.on('error', () => {
+  req.on('error', () => {
+    res.statusCode = 400;
+    res.end('Client Error: Data could not be posted.');
+  });
+
+  req.on('data', (dataChunk) => {
+    bodyStream.push(dataChunk);
+  });
+
+  req.on('end', () => {
+    const bodyString = Buffer.concat(bodyStream).toString();
+    const bodyParams = query.parse(bodyString);
+
+    switch (url.pathname) {
+      case '/postEvent':
+        jsonHandler.postEvent(req, res, bodyParams);
+        break;
+      case '/updateEvent':
+        jsonHandler.updateEvent(req, res, bodyParams);
+        break;
+      case '/sendEmailReminder':
+        jsonHandler.sendEmail(req, res, bodyParams, true);
+        break;
+      case '/sendTextReminder':
+        jsonHandler.sendText(req, res, bodyParams);
+        break;
+      default:
+        res.statusCode = 400;
+        res.end('Client Error: Data could not be posted.');
+        break;
+    }
+  });
+};
+
+const handleDelete = (req, res, url) => {
+  switch (url.pathname) {
+    case '/deleteEvent':
+      jsonHandler.deleteEvent(req, res, query.parse(url.query));
+      break;
+    default:
       res.statusCode = 400;
-      res.end('Client Error: Data could not be posted.');
-    });
-
-    req.on('data', (dataChunk) => {
-      bodyStream.push(dataChunk);
-    });
-
-    req.on('end', () => {
-      const bodyString = Buffer.concat(bodyStream).toString();
-      const bodyParams = query.parse(bodyString);
-
-      // Make request to store in db here?
-      jsonHandler.postEvent(req, res, bodyParams);
-    });
+      res.end('Client Error: Data could not be deleted.');
+      break;
   }
 };
 
@@ -97,6 +125,7 @@ const methodStruct = {
   GET: handleGet,
   HEAD: handleHead,
   POST: handlePost,
+  DELETE: handleDelete,
 };
 
 const onRequest = (req, res) => {
@@ -112,9 +141,5 @@ const onRequest = (req, res) => {
 http.createServer(onRequest).listen(port);
 
 dbHandler.connect();
-
-if (false) {
-  mailer.sendEmail();
-}
 
 // mailer.sendEmail("stashablank@gmail.com", "Test Email", "Hi there!");
