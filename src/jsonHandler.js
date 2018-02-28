@@ -1,26 +1,35 @@
+// Import custom modules
 const dbHandler = require('./dbHandler.js');
 const mailer = require('./mailer.js');
 
+// A general purpose response function that can send a regular or meta response
 const respond = (metaFlag, req, res, statusCode, data) => {
+  // Write the header
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
 
+  // If this is a meta response, stop here and send the response
   if (metaFlag) {
     res.end();
     return;
   }
 
+  // Write data and send the response
   res.write(JSON.stringify(data));
   res.end();
 };
 
+// Filter out unauthorized events from an event list
 const filterUnauthorizedEvents = (user, data) => data.events.filter((event) => {
+  // If the event is private and the requester didn't create the event, filter it out
   if (!event.event_private || event.event_creator === user) {
     return true;
   }
   return false;
 });
 
+// Filter out unwanted events from an event list
 const applyCustomFilter = (filter, data) => data.events.filter((event) => {
+  // Either filter out private or public events (default does not filter)
   if (filter === 'private') {
     return event.event_private;
   } else if (filter === 'public') {
@@ -29,7 +38,9 @@ const applyCustomFilter = (filter, data) => data.events.filter((event) => {
   return true;
 });
 
+// Search for a string in the title / description of an event and filter out non-matches
 const applySearchFilter = (search, data) => data.events.filter((event) => {
+  // If a search term exists, examine the title and description
   if (search && search !== '') {
     const searchLower = search.toLowerCase();
     const title = event.event_title.toLowerCase();
@@ -39,12 +50,15 @@ const applySearchFilter = (search, data) => data.events.filter((event) => {
   return true;
 });
 
+// Sort event results by data and time
 const sortResults = (sortCommand, data) => data.events.sort((a, b) => {
+  // Create new date objects
   const dateA = new Date(a.event_date);
   const dateB = new Date(b.event_date);
   let timeA = a.event_time;
   let timeB = b.event_time;
 
+  // If time is not defined for an event, assume it starts at 0:00 (midnight)
   if (timeA) {
     timeA = a.event_time.split(':');
   } else {
@@ -57,9 +71,12 @@ const sortResults = (sortCommand, data) => data.events.sort((a, b) => {
     timeB = [0, 0];
   }
 
+  // If the dates should be in ascending order
   if (sortCommand === 'date-asc') {
+    // Compare just the dates
     const result = dateA.getTime() - dateB.getTime();
 
+    // If the dates are equal, compare the hours, and if the hours are equal, compare the minutes
     if (result === 0) {
       const timeResult = timeA[0] - timeB[0];
 
@@ -69,6 +86,7 @@ const sortResults = (sortCommand, data) => data.events.sort((a, b) => {
       return timeResult;
     }
     return result;
+  // Same process as above, but sort by descending order instead
   } else if (sortCommand === 'date-des') {
     const result = dateB.getTime() - dateA.getTime();
 
@@ -85,8 +103,11 @@ const sortResults = (sortCommand, data) => data.events.sort((a, b) => {
   return 1;
 });
 
+// Handle a get events request by querying the database
 const getEvents = (req, res, params) => {
+  // Delegate to the dbHandler to get events from the database
   dbHandler.getEvents((data) => {
+    // On success, filter and sort the date, then send it back to the client
     const authorizedEvents = filterUnauthorizedEvents(req.user, data);
     const filteredEvents = applyCustomFilter(params.filter, { events: authorizedEvents });
     const searchedEvents = applySearchFilter(
@@ -97,6 +118,7 @@ const getEvents = (req, res, params) => {
 
     respond(false, req, res, 200, { events: sortedEvents });
   }, () => {
+    // On failure, send an error to the client (server-side issue this time)
     const response = {
       id: 'internal',
       message: 'Events could not be retrieved.',
@@ -106,7 +128,9 @@ const getEvents = (req, res, params) => {
   });
 };
 
+// Handle a meta get events request
 const getEventsMeta = (req, res) => {
+  // Query the database, return success or failure status codes
   dbHandler.getEvents(() => {
     respond(true, req, res, 200);
   }, () => {
@@ -114,11 +138,14 @@ const getEventsMeta = (req, res) => {
   });
 };
 
+// Handle a not found meta request by sending a 404 back
 const notFoundMeta = (req, res) => {
   respond(true, req, res, 404);
 };
 
+// Handle a post event request by parsing the parameters and passing them to dbHandler
 const postEvent = (req, res, params) => {
+  // Check to make sure all parameters are present, otherwise return a bad request error
   if (!params.title || !params.date || !params.description || !params.privacy) {
     const response = {
       id: 'missingParameters',
@@ -128,9 +155,11 @@ const postEvent = (req, res, params) => {
     respond(false, req, res, 400, response);
     return;
   }
+  // Apend the post's creator to the data set
   const moddedParams = params;
   moddedParams.creator = req.user || undefined;
 
+  // Ask the database to store the event and send either a 201 or a 500 to the client
   dbHandler.storeEvent(moddedParams, () => {
     const response = { message: 'Event successfully posted' };
 
@@ -145,6 +174,7 @@ const postEvent = (req, res, params) => {
   });
 };
 
+// Handle an update event request by checking the params and delegating to dbHandler
 const updateEvent = (req, res, params) => {
   if (!params.id || !params.title || !params.date || !params.description
   || !params.privacy) {
@@ -157,6 +187,7 @@ const updateEvent = (req, res, params) => {
     return;
   }
 
+  // Update the event, on success return a 204, and on failure return a 500
   dbHandler.updateEvent(params, () => {
     respond(true, req, res, 204);
   }, () => {
@@ -169,7 +200,9 @@ const updateEvent = (req, res, params) => {
   });
 };
 
+// Handle a request to delete an event
 const deleteEvent = (req, res, params) => {
+  // Ensure that an event id was provided
   if (!params.id) {
     const response = {
       id: 'missingParameters',
@@ -180,6 +213,7 @@ const deleteEvent = (req, res, params) => {
     return;
   }
 
+  // Ask the database to delete the event corresponding to the given id
   dbHandler.deleteEvent(params.id, () => {
     const response = { message: 'Event successfully deleted!' };
 
@@ -194,8 +228,11 @@ const deleteEvent = (req, res, params) => {
   });
 };
 
+// Handle a request to send an email reminder
 const sendEmail = (req, res, params, lineBreaks) => {
   const event = JSON.parse(params.event);
+
+  // Construct an email or a text based on the lineBreaks paramter
   const emailTitle = `ForgetMeNot Reminder: ${event.event_title}`;
 
   let emailBody;
@@ -218,6 +255,7 @@ const sendEmail = (req, res, params, lineBreaks) => {
     emailBody = `${emailBody}Sincerely, The ForgetMeNot Team`;
   }
 
+  // Ask the mailer to send an email given the provided address, title, and body
   mailer.sendEmail(params.email, emailTitle, emailBody, () => {
     const response = { message: 'Email successfully sent (Check your spam folder)!' };
 
@@ -232,12 +270,15 @@ const sendEmail = (req, res, params, lineBreaks) => {
   });
 };
 
+// Handle a request to send a text reminder
 const sendText = (req, res, params) => {
+  // Construct the carrier specific email address and send an email without line breaks
   const modifiedParams = params;
   modifiedParams.email = `${params.number}@${params.provider}`;
   sendEmail(req, res, modifiedParams, false);
 };
 
+// Export all of the public facing functions
 module.exports = {
   postEvent,
   getEvents,

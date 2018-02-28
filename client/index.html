@@ -9,26 +9,41 @@
 	<script type="text/babel">
 		"use strict";
 		
-		let postOverlay, confirmDeleteOverlay, sendEmailReminderOverlay, sendTextReminderOverlay, notifyOverlay; 
+		//Declare variables that will be assigned and used later on
+		//Overlays
+		let postOverlay, confirmDeleteOverlay, sendEmailReminderOverlay, sendTextReminderOverlay, notifyOverlay;
+		
+		//Headers, buttons, and the current event id
 		let addHeader, updateHeader, postButton, updateButton, currentEventId;
+		
+		//Form references
 		let getDataForm, eventForm, sendEmailForm, sendTextForm;
+		
+		//Local storage for event data
 		let eventsRef = [];
 		
+		//This function handles all incoming ajax responses
 		const handleResponse = (xhr, metaFlag) => {
 			
+			//If the server response is a meta only op (HEAD, 204, etc.)
 			if(metaFlag){
+				//Examine the status, and alert the user using a notification
 				switch(xhr.status){
+					//Updated resource
 					case 204:
 						openNotifyOverlay("204 (Updated)", "The event was successfully updated!");
 						getEvents(undefined, getDataForm);
 						break;
+					//HEAD success
 					case 200:
 						openNotifyOverlay("200 (HEAD Request, Success)", 
 							`Content Type of resource: ${xhr.getResponseHeader('Content-Type')}.`);
 						break;
+					//HEAD not found
 					case 404:
 						openNotifyOverlay("404 (HEAD Request, Not Found)", "Resource not found.");
 						break;
+					//HEAD internal error
 					case 500:
 						openNotifyOverlay("500 (HEAD Request, Internal)", "Internal server error.");
 						break;
@@ -36,34 +51,44 @@
 				return;
 			}
 			
+			//Grab and reset the div storing events
 			const events = document.querySelector("#events");
-			
 			events.innerHTML = "";
 			
+			//Parse the response (at this point, the result is not meta)
 			const data = JSON.parse(xhr.response);
 			
+			//If there is a message in the server response
 			if(data.message){
 				switch(xhr.status){
+					//Resource was successfully created
 					case 201:
 						openNotifyOverlay("201 (Created)", data.message);
 						break;
+					//General success message
 					case 200:
 						openNotifyOverlay("200 (Success)", data.message);
 						break;
+					//General client error message
 					case 400:
 						openNotifyOverlay("400 (Bad Request)", data.message);
 				}
+				//Make another call to get events in case data was changed
 				getEvents(undefined, getDataForm);
 			}
 			
+			//Locally store event data
 			eventsRef = data.events;
 			
+			//If the response contained an events array
 			if(data.events){
-			
+				//Update the events header with an accurate returned event count
 				const eventsHeader = document.querySelector("#eventsHeader");
 				eventsHeader.textContent = `Events (${data.events.length})`;
-			
+				
+				//Iterate over each event in the given array
 				for(let i = 0; i < data.events.length; i++){
+					//Create elements for the event panel
 					const eventTile = document.createElement('div');
 					const header = document.createElement('div');
 					const body = document.createElement('div');
@@ -79,6 +104,7 @@
 					
 					const eventData = data.events[i];
 					
+					//Set data, classes, and custom attributes
 					header.textContent = eventData['event_title'];
 					header.className = ("panel-heading bold-text");
 					body.classList.add("panel-body");
@@ -90,12 +116,14 @@
 					description.textContent = `Description: ${eventData['event_description']}`;
 					privacy.textContent = `Visibility: ${eventData['event_private'] ? 'Only you can see this' : 'Public'}`;
 					
+					//Time is an optional parameter, parse this separately
 					if(eventData['event_time']){
 						time.textContent = `Start Time: ${eventData['event_time']}`;
 					} else {
 						time.textContent = "Start Time: N/A (All Day)";
 					}
 					
+					//Build each panel's set of buttons
 					editBtn.textContent = "Edit Event";
 					editBtn.className = "btn btn-warning";
 					editBtn.addEventListener('click', openUpdateOverlay);
@@ -119,11 +147,13 @@
 					eventTile.className = "event-right-anim panel panel-default";
 					eventTile.style.animationDelay = `${0.2 * i}s`;
 					
+					//Combine the buttons into a container
 					buttonContainer.appendChild(editBtn);
 					buttonContainer.appendChild(deleteBtn);
 					buttonContainer.appendChild(emailBtn);
 					buttonContainer.appendChild(textBtn);
 					
+					//Add all panel components to the panel body
 					body.appendChild(date);
 					body.appendChild(time);
 					body.appendChild(description);
@@ -131,24 +161,27 @@
 					body.appendChild(document.createElement('hr'));
 					body.appendChild(buttonContainer);
 					
+					//Add the header and body to the panel
 					eventTile.appendChild(header);
 					eventTile.appendChild(body);
 					
 					events.appendChild(eventTile);
 					
+					//If this isn't the last event, ad an hr to separate the events
 					if(i < data.events.length -1) {
 						events.appendChild(document.createElement('hr'));
 					}
 				}
 			}
-			console.log(xhr.response);
 		};
 
+		//Create an ajax request to get events
 		const getEvents = (e, form) => {
 			const action = form.getAttribute("action");
 			
 			let method;
 			
+			//The method used depends on the user's selection / if the script invoked the function
 			if(e === undefined){
 				method = 'get';
 			} else {
@@ -158,12 +191,14 @@
 			const filterSelect = form.querySelector("#filterSelect");
 			const sortSelect = form.querySelector("#sortSelect");
 			
+			//Grab the querystring params
 			const filter = filterSelect.options[filterSelect.selectedIndex].value;
 			const sort = sortSelect.options[sortSelect.selectedIndex].value;
 			const search = encodeURIComponent(document.querySelector("#searchBox").value)
 			
 			const xhr = new XMLHttpRequest();
 			
+			//Setup the url with the querystring
 			xhr.open(method, `${action}?filter=${filter}&sort=${sort}&search=${search}`);
 			xhr.setRequestHeader("Accept", "application/json");
 			
@@ -171,6 +206,7 @@
 			
 			xhr.send();
 			
+			//Stop the page from reloading
 			if(e){
 				e.preventDefault();
 			}
@@ -178,12 +214,13 @@
 			return false;
 		};
 
+		//Create an ajax request to post or update an event
 		const postEvent = (e, form, eventIndex) => {
 		
 			let action, id;
 			
+			//Action and id depends on whether this is a request to post or update
 			if(eventIndex >= 0){
-				console.log(eventIndex);
 				action = '/updateEvent';
 				id = eventsRef[eventIndex]['event_id'];
 			} else {
@@ -192,6 +229,7 @@
 		
 			const method = form.getAttribute("method");
 			
+			//Gather data from the form
 			const title = form.querySelector("#titleField").value;
 			const date = form.querySelector("#dateField").value;
 			const time = form.querySelector("#timeField").value;
@@ -206,12 +244,14 @@
 			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 			xhr.setRequestHeader("Accept", "application/json");
 			
+			//Metaflag depends on the type of request (post, or update)
 			if(eventIndex >= 0){
 				xhr.onload = () => handleResponse(xhr, true);
 			} else {
 				xhr.onload = () => handleResponse(xhr, false);
 			}
 			
+			//Format the data to be sent in the post body
 			let data = `title=${title}&date=${date}&time=${time}&description=${description}&privacy=${privacy}`;
 			
 			if(eventIndex){
@@ -224,14 +264,17 @@
 			return false;
 		};
 		
+		//Create an ajax request to delete an event
 		const deleteEvent = () => {
 			const xhr = new XMLHttpRequest();
 			
+			//Stop the process if the event data can't be found
 			if(!eventsRef[currentEventId]){
 				openNotifyOverlay("Something Went Wrong", "You can't delete that resource");
 				return;
 			}
 			
+			//Grab the event id and send it to the server for deletion
 			const id = eventsRef[currentEventId]['event_id'];
 			const action = `/deleteEvent?id=${id}`;
 			
@@ -243,9 +286,11 @@
 			xhr.send();
 		};
 		
+		//Create an ajax request to send an email
 		const sendEmail = (e, form) => {
 			const event = JSON.stringify(eventsRef[currentEventId]);
 			
+			//Gather and format the data
 			const method = form.getAttribute("method");
 			const action = form.getAttribute("action");
 			
@@ -267,12 +312,14 @@
 			return false;
 		};
 		
+		//Create an ajax request to send a text
 		const sendText = (e, form) => {
 			const event = JSON.stringify(eventsRef[currentEventId]);
 			
 			const method = form.getAttribute("method");
 			const action = form.getAttribute("action");
 			
+			//Gather and format the data
 			const number = form.querySelector("#textField").value;
 			const providerSelect = form.querySelector("#providerSelect");
 			const provider = providerSelect.options[providerSelect.selectedIndex].value;
@@ -293,11 +340,13 @@
 			return false;
 		};
 		
+		//Close the specified overlay by applying / removing CSS animations
 		const closeAndResetOverlay = (overlay) => {
 			overlay.classList.remove("overlay-down-anim");
 			overlay.classList.add("overlay-up-anim");
 		};
 		
+		//Close all overlays and open the specified overlay
 		const openOverlay = (overlay) => {
 			closeAndResetOverlay(postOverlay);
 			closeAndResetOverlay(confirmDeleteOverlay);
@@ -310,10 +359,12 @@
 			overlay.classList.add("overlay-down-anim");
 		};
 		
+		//Open the add event overlay
 		const openAddOverlay = (e) => {
 			
 			openOverlay(postOverlay);
 			
+			//Update the form
 			addHeader.style.display = "block";
 			updateHeader.style.display = "none";
 			postButton.style.display = "inline-block";
@@ -321,6 +372,7 @@
 			
 			const form = document.querySelector("#eventForm");
 			
+			//Reset the form's fields
 			form.querySelector("#titleField").value = "";
 			form.querySelector("#dateField").value = "";
 			form.querySelector("#timeField").value = "";
@@ -328,15 +380,18 @@
 			form.querySelector("#privacySelect").selectedIndex = 0;
 		};
 		
+		//Open the update event overlay
 		const openUpdateOverlay = (e) => {
 			
 			openOverlay(postOverlay);
 			
+			//Update the form
 			addHeader.style.display = "none";
 			updateHeader.style.display = "block";
 			postButton.style.display = "none";
 			updateButton.style.display = "inline-block";
 			
+			//Grab the event id and fill in form data
 			const eventIndex = e.currentTarget.getAttribute("eventindex");
 			currentEventId = eventIndex;
 			const event = eventsRef[eventIndex];
@@ -349,66 +404,82 @@
 			form.querySelector("#privacySelect").selectedIndex = event["event_private"] ? 1 : 0;
 		};
 		
+		//Open the delete event confirmation overlay
 		const openDeleteOverlay = (e) => {
+			//Grab the event id and ask the user to confirm the delete
 			openOverlay(confirmDeleteOverlay);
 			const eventIndex = e.currentTarget.getAttribute("eventindex");
 			currentEventId = eventIndex;
 		};
 		
+		//Open the send email reminder overlay
 		const openEmailReminderOverlay = (e) => {
+			//Grab the event id and ask the user for their email address
 			openOverlay(sendEmailReminderOverlay);
 			const eventIndex = e.currentTarget.getAttribute("eventindex");
 			currentEventId = eventIndex;
 		};
 		
+		//Open the text reminder overlay
 		const openTextReminderOverlay = (e) => {
+			//Grab the event id and ask the user for their phone number and carrier
 			openOverlay(sendTextReminderOverlay);
 			const eventIndex = e.currentTarget.getAttribute("eventindex");
 			currentEventId = eventIndex;
 		};
 		
+		//Open the notification overlay
 		const openNotifyOverlay = (header, text) => {
 			const notifyHeader = document.querySelector("#notifyHeader");
 			const notifyText = document.querySelector("#notifyText");
 			
+			//Set the notification header and body text
 			notifyHeader.textContent = header;
 			notifyText.textContent = text;
 			
 			openOverlay(notifyOverlay);
 		};
 
+		//Setup variables and run all initial startup code
 		const init = () => {
+			//Grab all forms
 			eventForm = document.querySelector("#eventForm");
 			getDataForm = document.querySelector("#getDataForm");
 			sendEmailForm = document.querySelector("#emailReminderForm");
 			sendTextForm = document.querySelector("#textReminderForm");
 			const addEventButton = document.querySelector("#addEvent");
 			
+			//Hook up update button
 			const updateEventButton = document.querySelector("#updateButton");
 			updateEventButton.addEventListener('click', (e) => {
 				postEvent(e, eventForm, currentEventId);
 			});
 			
+			//Hook up delete button
 			const deleteEventButton = document.querySelector("#deleteEventButton");
 			deleteEventButton.addEventListener('click', deleteEvent);
 			
+			//Grab cancel buttons
 			const cancelButton = document.querySelector("#cancelPost");
 			const dismissNotify = document.querySelector("#dismissNotify");
 			const cancelDelete = document.querySelector("#cancelDelete");
 			const cancelEmailReminder = document.querySelector("#cancelEmailReminder");
 			const cancelTextReminder = document.querySelector("#cancelTextReminder");
 			
+			//Grab headers and post / update buttons
 			addHeader = document.querySelector("#addHeader");
 			updateHeader = document.querySelector("#updateHeader");
 			postButton = document.querySelector("#postButton");
 			updateButton = document.querySelector("#updateButton");
 			
+			//Grab overlays
 			postOverlay = document.querySelector("#addEventOverlay");
 			confirmDeleteOverlay = document.querySelector("#confirmDeleteOverlay");
 			sendEmailReminderOverlay = document.querySelector("#sendEmailReminderOverlay");
 			sendTextReminderOverlay = document.querySelector("#sendTextReminderOverlay");
 			notifyOverlay = document.querySelector("#notifyOverlay");
 			
+			//Attach event listeners to all forms
 			eventForm.addEventListener('submit', (e) => {
 				postEvent(e, eventForm, -1);
 				closeAndResetOverlay(postOverlay);
@@ -426,6 +497,7 @@
 				sendText(e, sendTextForm);
 			});
 			
+			//Attach event listeners to all buttons
 			addEventButton.addEventListener('click', (e) => {
 				openAddOverlay(e);
 			});
@@ -450,7 +522,8 @@
 				closeAndResetOverlay(sendTextReminderOverlay);
 			});
 		};
-
+		
+		//When the window loads, run the init function
 		window.onload = init;
 	</script>
 </head>
@@ -545,7 +618,8 @@
 			</p>
 			<p>
 				<!-- Gateways: https://www.digitaltrends.com/mobile/how-to-send-a-text-from-your-email-account/ -->
-				<select id="providerSelect" class="form-control center-block">
+				<label for="providerSelect">Phone Carrier: </label>
+				<select id="providerSelect" class="form-control center-block" name="providerSelect">
 					<option value="message.alltel.com">Alltel</option>
 					<option value="txt.att.net">AT&amp;T</option>
 					<option value="myboostmobile.com">Boost Mobile</option>
