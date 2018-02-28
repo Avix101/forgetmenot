@@ -257,13 +257,19 @@ const sendEmail = (req, res, params, lineBreaks) => {
 
   // Ask the mailer to send an email given the provided address, title, and body
   mailer.sendEmail(params.email, emailTitle, emailBody, () => {
-    const response = { message: 'Email successfully sent (Check your spam folder)!' };
+    let response = { message: 'Email successfully sent (Check your spam folder)!' };
+	
+	if(lineBreaks){
+		response = { message: 'Email successfully sent (Check your spam folder)!' };
+	} else {
+		response = { message: 'Text successfully sent!' };
+	}
 
     respond(false, req, res, 200, response);
   }, () => {
     const response = {
       id: 'internal',
-      message: 'Email could not be sent!',
+      message: 'Reminder could not be sent!',
     };
 
     respond(false, req, res, 500, response);
